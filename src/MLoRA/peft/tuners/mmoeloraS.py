@@ -161,7 +161,6 @@ class MMOELoraLinearS(MMOELoraLinear):
         if expert_weight is not None:
             if self.expert_type == "softmax":
                 expert_weight = Variable(torch.softmax(expert_weight / 0.3, dim=-1), requires_grad=True)
-
         previous_dtype = x.dtype
 
         if self.active_adapter not in self.lora_A.keys():   # No adapter, directly use linear

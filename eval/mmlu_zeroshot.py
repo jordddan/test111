@@ -41,6 +41,7 @@ def main(
     output_dir:str = "",
     debug:bool = False, 
     moe_inference:bool = False, 
+    expert_type:str = "softmax",
 ):
     # os.environ['CUDA_VISIBLE_DEVICES'] = str(device)
     assert (
@@ -63,6 +64,7 @@ def main(
                 "task_num": 16,
                 "task_embedding_dim": 64,
                 "expert_num": 1,
+                "expert_type": expert_type,
                 }
         task_type = TaskType.CAUSAL_LMS
 
@@ -111,8 +113,7 @@ def main(
         sample = data["data"]
         if moe_inference:
             assert "cos_similarity" in data, "moe weights are not in test data"
-            expert_weight = data["cos_similarity"]
-    
+            expert_weight = torch.Tensor(data["cos_similarity"])
         res = (
             f"The following are multiple choice questions (with answers).\n\n"
             f"{sample['question']}\n"
@@ -132,7 +133,8 @@ def main(
 
         if moe_inference:
             assert "cos_similarity" in data, "moe weights are not in test data"
-            expert_weight = data["cos_similarity"]
+            expert_weight = torch.Tensor(data["cos_similarity"])
+
 
         eos_token = tokenizer.eos_token
         res = (
@@ -162,6 +164,11 @@ def main(
         attention_mask = torch.ones(len(input_ids),dtype=torch.long).to(device).unsqueeze(dim=0)
         input_ids = torch.LongTensor(input_ids).to(device).unsqueeze(dim=0)
         if expert_weight is not None:
+            if "top" in expert_type:
+                topk = int(expert_type[-1])
+                indices = torch.topk(expert_weight, k=topk).indices
+                expert_weight = torch.zeros(expert_weight.shape)
+                expert_weight[indices] = 1
             expert_weight = torch.Tensor(expert_weight).to(device)
         # inputs.pop("token_type_ids")
         # import pdb
