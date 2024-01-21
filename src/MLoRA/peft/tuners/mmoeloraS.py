@@ -25,7 +25,7 @@ class MMOELoraConfigS(LoraConfig):
     task_num: int = field(default=2, metadata={"help": "The number of tasks."})
     task_embedding_dim: int = field(default=64)
     expert_num: int = field(default=4)
-
+    expert_type: str = field(default="softmax")
     def __post_init__(self):
         self.peft_type = PeftType.MMOELORAS
 
@@ -58,6 +58,7 @@ class MMOELoraModelS(MMOELoraModel):
             "task_num": lora_config.task_num,
             "task_embedding_dim": lora_config.task_embedding_dim,
             "expert_num": lora_config.expert_num,
+            "expert_type": lora_config.expert_type
         }
         key_list = [key for key, _ in self.model.named_modules()]   # all module in raw model
         for key in key_list:
@@ -133,37 +134,34 @@ class MMOELoraLinearS(MMOELoraLinear):
         super().__init__(adapter_name, in_features, out_features, r, lora_alpha, lora_dropout, fan_in_fan_out, **kwargs)
 
 
-    def unmerge(self, expert_weight=None):
-        if self.active_adapter not in self.lora_A.keys():
-            return
-        if not self.merged:
-            warnings.warn("Already unmerged. Nothing to do.")
-            return
-        if self.r[self.active_adapter] > 0:
-            for i in range(self.expert_num):
-                lora_A_weights = self.lora_A[self.active_adapter].loraA[i].mlp.weight
-                lora_B_weights = self.lora_B[self.active_adapter].loraB[i].mlp.weight
-                self.weight.data -= (
-                    transpose(
-                        lora_B_weights @ lora_A_weights,
-                        self.fan_in_fan_out,
-                    )
-                    * self.scaling[self.active_adapter]
-                    * 0.125
-                )
-            self.merged = False
+    # def unmerge(self, expert_weight=None):
+    #     if self.active_adapter not in self.lora_A.keys():
+    #         return
+    #     if not self.merged:
+    #         warnings.warn("Already unmerged. Nothing to do.")
+    #         return
+    #     if self.r[self.active_adapter] > 0:
+    #         for i in range(self.expert_num):
+    #             lora_A_weights = self.lora_A[self.active_adapter].loraA[i].mlp.weight
+    #             lora_B_weights = self.lora_B[self.active_adapter].loraB[i].mlp.weight
+    #             self.weight.data -= (
+    #                 transpose(
+    #                     lora_B_weights @ lora_A_weights,
+    #                     self.fan_in_fan_out,
+    #                 )
+    #                 * self.scaling[self.active_adapter]
+    #                 * 0.125
+    #             )
+    #         self.merged = False
 
 
     def forward(self, x: torch.Tensor, **kwargs):
-        # import pdb
-        # pdb.set_trace()
-        # import pdb
-        # pdb.set_trace()
+
         expert_weight = kwargs["expert_weight"]
         if expert_weight is not None:
-            expert_weight = Variable(torch.softmax(expert_weight / 0.3, dim=-1), requires_grad=True)
-        
-        
+            if self.expert_type == "softmax":
+                expert_weight = Variable(torch.softmax(expert_weight / 0.3, dim=-1), requires_grad=True)
+
         previous_dtype = x.dtype
 
         if self.active_adapter not in self.lora_A.keys():   # No adapter, directly use linear

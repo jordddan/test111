@@ -3,7 +3,7 @@
 
 export CUDA_VISIBLE_DEVICES=$1
 
-model_name=moelora6-ultrachat
+model_name=ultrachat
 input_dir=/opt/data/private/moe-lora/data/mmlu/raw_data/mpnet/ultrachat_clustered
 output_path=/opt/data/private/moe-lora/data/mmlu/code_test/$model_name
 
@@ -15,7 +15,7 @@ python /opt/data/private/moe-lora/MOELoRA-peft/eval/mmlu_zeroshot.py \
     --base_model /opt/data/private/wcy/models/Llama-2-7b-hf \
     --lora_weights /opt/data/private/moe-lora/MOELoRA-peft/saved/moelora6-ultrachat/checkpoint-800 \
     --data_type ultrachat \
-    --moe_inference true \
+    --debug \
     --input_dir $input_dir \
     --output_dir $output_path \
     --rangel $2 \

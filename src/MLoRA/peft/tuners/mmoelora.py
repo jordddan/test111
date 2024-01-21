@@ -218,6 +218,7 @@ class MMOELoraLinear(nn.Linear, MMOELoraLayer):
         lora_alpha: int = 1,
         lora_dropout: float = 0.0,
         fan_in_fan_out: bool = False,  # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
+        expert_type: str = "softmax",
         **kwargs,
     ):
         init_lora_weights = kwargs.pop("init_lora_weights", True)
@@ -238,7 +239,7 @@ class MMOELoraLinear(nn.Linear, MMOELoraLayer):
         
         # Freezing the pre-trained weight matrix
         self.weight.requires_grad = False
-
+        self.expert_type = expert_type
         self.fan_in_fan_out = fan_in_fan_out
         if fan_in_fan_out:
             self.weight.data = self.weight.data.T

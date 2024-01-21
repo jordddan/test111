@@ -24,6 +24,7 @@ class UltrachatTrain(object):
         self.prompter = Prompter()
         self.start_token = "\n"
         self.end_token = self.tokenizer.eos_token
+        self.expert_type = self.model_args.expert_type
         
     def __call__(self, examples):
 
@@ -41,8 +42,6 @@ class UltrachatTrain(object):
             padding=False,
             return_tensors=None,
         )
-        import pdb
-        pdb.set_trace()
         if (
             result["input_ids"][-1] != self.tokenizer.eos_token_id
             and len(result["input_ids"]) < self.max_length
@@ -65,7 +64,7 @@ class UltrachatTrain(object):
             content = c["content"]
             if role == "assistant":
                 # model
-                c_input = self.start_token + "Assitant" + ": "
+                c_input = self.start_token + "Assistant" + ": "
                 tokenized = self.tokenizer(c_input, add_special_tokens=False)
                 tokenized_ids += tokenized["input_ids"]
                 labels += [IGNORE_INDEX] * len(tokenized["input_ids"])
@@ -91,9 +90,14 @@ class UltrachatTrain(object):
         res = {"input_ids": torch.LongTensor(tokenized_ids), "labels": torch.LongTensor(labels)}
         
         res = self.truncate(res)
-
-        if self.model_args.expert_num > 1:
-            res["expert_weight"] = torch.Tensor(data_point["cos_similarity"])
+        if self.model_args.expert_num > 1:  
+            expert_weight = torch.Tensor(data_point["cos_similarity"])
+            if "top" in self.expert_type:
+                topk = int(self.expert_type[-1])
+                indices = torch.topk(expert_weight, k=topk).indices
+                expert_weight = torch.zeros(expert_weight.shape)
+                expert_weight[indices] = 1
+            res["expert_weight"] = expert_weight 
         
         return res
         

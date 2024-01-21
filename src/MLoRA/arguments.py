@@ -82,6 +82,7 @@ class ModelArguments:
     bias_weight: Optional[float] = field(default=1)
     is_debug: Optional[bool] = field(default=False)
     data_type: Optional[str] = field(default="alpaca")
+    expert_type: Optional[str] = field(default="softmax")
 
 @dataclass
 class DataTrainingArguments:
@@ -133,7 +134,7 @@ class DataTrainingArguments:
         default=True, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )
     preprocessing_num_workers: Optional[int] = field(
-        default=8,
+        default=None,
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
     max_source_length: Optional[int] = field(

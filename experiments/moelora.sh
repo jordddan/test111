@@ -4,12 +4,12 @@ lora_trainable="q_proj,k_proj,v_proj,o_proj"
 modules_to_save="null"
 lora_dropout=0.1
 LR=2e-4
-MAX_STEPS=2400
+MAX_STEPS=1600
 SAVE_STEPS=100
 MASTER_PORT=$(shuf -n 1 -i 10000-65535)
 model_name_or_path="/opt/data/private/wcy/models/Llama-2-7b-hf"   
 your_data_path="/opt/data/private/moe-lora/datasets"  
-your_checkpopint_path="/opt/data/private/moe-lora/MOELoRA-peft/saved/ultrachat"  
+your_checkpopint_path="/opt/data/private/moe-lora/MOELoRA-peft/saved/ultrachat_moe_top2"  
 mkdir -p $your_checkpopint_path
 MAX_SOURCE_LENGTH=1024
 data_type="ultrachat"
@@ -30,9 +30,9 @@ deepspeed  --include="localhost:4,5,6,7" --master_port $MASTER_PORT run_mlora.py
     --overwrite_output_dir \
     --max_source_length $MAX_SOURCE_LENGTH \
     --max_target_length 196 \
-    --per_device_train_batch_size 4 \
-    --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 8 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps 16 \
     --max_steps ${MAX_STEPS} \
     --logging_steps 10 \
     --save_steps ${SAVE_STEPS} \
@@ -47,7 +47,8 @@ deepspeed  --include="localhost:4,5,6,7" --master_port $MASTER_PORT run_mlora.py
     --preprocessing_num_workers 16 \
     --bf16 \
     --lora_name moelora \
-    --expert_num 1 | tee ${your_checkpopint_path}/res.log
+    --expert_type top2 \
+    --expert_num 6 | tee ${your_checkpopint_path}/res.log
 
 # deepspeed --num_gpus=4 --master_port $MASTER_PORT run_mlora.py \
 #     --do_predict \

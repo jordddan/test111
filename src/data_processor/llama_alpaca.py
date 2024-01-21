@@ -20,7 +20,7 @@ class AlpacaTrain(object):
         self.task = task
         self.max_length = data_args.max_source_length
         self.prompter = Prompter()
-
+        self.expert_type = model_args.expert_type
     def __call__(self, examples):
 
         tokenized_full_prompt = self.generate_and_tokenize_prompt(examples)
@@ -30,9 +30,14 @@ class AlpacaTrain(object):
 
         res = {"input_ids": torch.LongTensor(input_ids), "labels": torch.LongTensor(labels)}
 
-        if self.model_args.expert_num > 1:
-            res["expert_weight"] = torch.Tensor(examples["cos_similarity"])
-
+        if self.model_args.expert_num > 1:  
+            expert_weight = torch.Tensor(examples["cos_similarity"])
+            if "top" in self.expert_type:
+                topk = int(self.expert_type[-1])
+                indices = torch.topk(expert_weight, k=topk).indices
+                expert_weight = torch.zeros(expert_weight.shape)
+                expert_weight[indices] = 1
+            res["expert_weight"] = expert_weight 
         return res
 
     def tokenize(self, prompt, add_eos_token=True):

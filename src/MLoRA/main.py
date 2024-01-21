@@ -180,6 +180,7 @@ def main(parser):
                   "task_num": model_args.task_num,
                   "task_embedding_dim": model_args.task_embedding_dim,
                   "expert_num": model_args.expert_num,
+                  "expert_type":model_args.expert_type,
                   }
             task_type = TaskType.CAUSAL_LMS
         else:
